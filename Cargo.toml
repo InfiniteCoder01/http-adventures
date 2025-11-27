@@ -1,0 +1,13 @@
+[package]
+name = "http-adventures"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+log = "0.4.28"
+pretty_env_logger = "0.5.0"
+
+tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread"] }
+axum = { version = "0.8.7", features = ["ws"] }
+tower-http = { version = "0.6.7", features = ["fs"] }
+futures-util = "0.3.31"

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>The game</title>
+    <style>
+      body, html {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      canvas {
+        background-color: green;
+        position: fixed;
+        left: 0;
+        top: 0;
+      }
+    </style>
+</head>
+<body>
+  <canvas></canvas>
+  <script>
+    const canvas = document.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    window.onload = window.onresize = function() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      ctx.imageSmoothingEnabled = false;
+    };
+
+    const textures = {};
+  </script>
+  <script src="client.js"></script>
+  <script src="renderer.js"></script>
+  <script src="controls.js"></script>
+</body>
+</html>
