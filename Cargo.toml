@@ -11,3 +11,5 @@ tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread"] }
 axum = { version = "0.8.7", features = ["ws"] }
 tower-http = { version = "0.6.7", features = ["fs"] }
 futures-util = "0.3.31"
+tiled = "0.15.0"
+bidivec = "0.1.0"
