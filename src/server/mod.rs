@@ -41,14 +41,15 @@ impl Server {
         id
     }
 
-    /// Generate update packet into buffer, as if the client moved from last_position to position.
-    /// If last_position is None, it is a join packet
-    pub fn update(
-        &self,
-        buffer: &mut Vec<u8>,
-        position: (f32, f32),
-        last_position: Option<(f32, f32)>,
-    ) {
+    pub fn despawn(&mut self, id: u32) {
+        self.objects.remove(&id);
+    }
+
+    /// Generate update packet into buffer, as if the client moved from self_object's position to position.
+    /// If self_object is None, it is a join packet
+    pub fn update(&self, buffer: &mut Vec<u8>, position: (f32, f32), self_object: Option<u32>) {
+        let self_object = self_object.map(|id| (id, &self.objects[&id]));
+
         let chunk_coords = |(x, y): (f32, f32)| {
             (
                 (x / self.tile_size as f32 / Self::CHUNK_SIZE as f32).floor() as i32,
@@ -70,8 +71,8 @@ impl Server {
                 }
 
                 // Skip chunks that were visible from the last position
-                if let Some(last_position) = last_position {
-                    let last_center = chunk_coords(last_position);
+                if let Some((_, object)) = self_object {
+                    let last_center = chunk_coords((object.x, object.y));
                     if cdst_range(last_center.0).contains(&x)
                         && cdst_range(last_center.1).contains(&y)
                     {
@@ -83,7 +84,36 @@ impl Server {
                 self.chunks[(x as _, y as _)].send(buffer, (x as _, y as _));
             }
         }
-
         buffer.push(0);
+
+        for (id, object) in &self.objects {
+            // Skip self
+            if let Some((self_id, _)) = self_object {
+                if *id == self_id {
+                    continue;
+                }
+            }
+
+            // Get visibility status
+            let max_dst = |(x, y): (f32, f32)| (object.x - x).abs().max((object.y - y).abs());
+            let visible = max_dst(position) <= Self::OBJECT_DISTANCE;
+            let last_visible = if let Some((_, self_object)) = self_object {
+                max_dst((self_object.x, self_object.y)) <= Self::OBJECT_DISTANCE
+            } else {
+                false
+            };
+
+            if visible == last_visible {
+                continue;
+            }
+
+            buffer.push(if visible { b'+' } else { b'-' });
+            buffer.extend_from_slice(&id.to_be_bytes());
+            if visible {
+                buffer.extend_from_slice(&object.x.to_be_bytes());
+                buffer.extend_from_slice(&object.y.to_be_bytes());
+            }
+        }
+        buffer.push(0)
     }
 }

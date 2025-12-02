@@ -13,12 +13,13 @@ pub fn texture(texture: &str) -> Message {
     Message::binary(msg)
 }
 
-pub fn join(server: &Server) -> Message {
+pub fn join(server: &Server, player_id: u32) -> Message {
     let mut msg = Vec::new();
     msg.push(b'j');
     msg.extend_from_slice(&Server::CHUNK_SIZE.to_be_bytes());
     msg.extend_from_slice(&server.tile_size.to_be_bytes());
     server.update(&mut msg, (0.0, 0.0), None);
+    msg.extend_from_slice(&player_id.to_be_bytes());
     Message::binary(msg)
 }
 
@@ -36,7 +37,7 @@ pub async fn handle_socket(socket: WebSocket) {
             y: 0.0,
             client: None,
         });
-        (join(server), player_id)
+        (join(server, player_id), player_id)
     };
     crate::log_err!(tx.send(msg).await);
 
@@ -78,18 +79,21 @@ pub async fn handle_socket(socket: WebSocket) {
                         let mut server = crate::SERVER.write().unwrap();
                         let server = server.as_mut().unwrap();
 
-                        let player = server.objects.get_mut(&player_id).unwrap();
-                        let last_pos = (player.x, player.y);
-
-                        player.x = f32::from_be_bytes(bytes[1..5].try_into().unwrap());
-                        player.y = f32::from_be_bytes(bytes[5..9].try_into().unwrap());
+                        let new_pos = (
+                            f32::from_be_bytes(bytes[1..5].try_into().unwrap()),
+                            f32::from_be_bytes(bytes[5..9].try_into().unwrap()),
+                        );
 
                         let mut buf = vec![b'u'];
-                        let pos = (player.x, player.y);
-                        server.update(&mut buf, pos, Some(last_pos));
+                        server.update(&mut buf, new_pos, Some(player_id));
+
+                        let player = server.objects.get_mut(&player_id).unwrap();
+                        (player.x, player.y) = new_pos;
                         buf
                     };
-                    if buf.len() > 2 {
+
+                    // Check against an empty packet size
+                    if buf.len() > 3 {
                         crate::log_err!(tx.send(Message::binary(buf)).await);
                     }
                 }
@@ -101,4 +105,8 @@ pub async fn handle_socket(socket: WebSocket) {
             _ => {}
         }
     }
+
+    let mut server = crate::SERVER.write().unwrap();
+    let server = server.as_mut().unwrap();
+    server.despawn(player_id);
 }

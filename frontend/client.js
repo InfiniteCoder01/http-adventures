@@ -27,6 +27,13 @@ socket.addEventListener("message", async (event) => {
 
     while (bytes.getUint8(index) > 0) index = world.parseChunk(bytes, index);
     index++;
+    while (bytes.getUint8(index) > 0) index = parseObject(bytes, index);
+    index++;
+
+    if (type == 'j') {
+      player_id = bytes.getUint32(index)
+      player = objects[player_id];
+    }
   } else { // Unknown message
     console.error(`Unknown message type ${type} (${bytes.getUint8(0)})`);
   }
