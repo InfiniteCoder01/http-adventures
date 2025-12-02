@@ -26,11 +26,19 @@ pub async fn handle_socket(socket: WebSocket) {
     use futures_util::{SinkExt, StreamExt};
     let (mut tx, mut rx) = socket.split();
 
-    let msg = texture("spritesheet.png");
-    crate::log_err(tx.send(msg).await);
+    crate::log_err!(tx.send(texture("spritesheet.png")).await);
 
-    let msg = join(crate::SERVER.read().unwrap().as_ref().unwrap());
-    crate::log_err(tx.send(msg).await);
+    let (msg, player_id) = {
+        let mut server = crate::SERVER.write().unwrap();
+        let server = server.as_mut().unwrap();
+        let player_id = server.spawn(crate::server::Object {
+            x: 0.0,
+            y: 0.0,
+            client: None,
+        });
+        (join(server), player_id)
+    };
+    crate::log_err!(tx.send(msg).await);
 
     // let player = crate::SERVER.lock().unwrap().join(tx);
     // crate::log_err(
@@ -66,9 +74,24 @@ pub async fn handle_socket(socket: WebSocket) {
             Message::Text(msg) => log::info!("Received message: {}", msg),
             Message::Binary(bytes) => {
                 if bytes[0] == b'u' {
-                    let x = f32::from_be_bytes(bytes[1..5].try_into().unwrap());
-                    let y = f32::from_be_bytes(bytes[5..9].try_into().unwrap());
-                    println!("{x}, {y}");
+                    let buf = {
+                        let mut server = crate::SERVER.write().unwrap();
+                        let server = server.as_mut().unwrap();
+
+                        let player = server.objects.get_mut(&player_id).unwrap();
+                        let last_pos = (player.x, player.y);
+
+                        player.x = f32::from_be_bytes(bytes[1..5].try_into().unwrap());
+                        player.y = f32::from_be_bytes(bytes[5..9].try_into().unwrap());
+
+                        let mut buf = vec![b'u'];
+                        let pos = (player.x, player.y);
+                        server.update(&mut buf, pos, Some(last_pos));
+                        buf
+                    };
+                    if buf.len() > 2 {
+                        crate::log_err!(tx.send(Message::binary(buf)).await);
+                    }
                 }
             }
             Message::Close(_) => {

@@ -1,11 +1,17 @@
 use bidivec::BidiVec;
+use std::collections::HashMap;
 
 pub mod chunk;
 pub use chunk::Chunk;
 
+pub mod object;
+pub use object::Object;
+
 pub struct Server {
     pub tile_size: u32,
     pub chunks: BidiVec<Chunk>,
+    pub objects: HashMap<u32, Object>,
+    pub next_object_id: u32,
 }
 
 impl Server {
@@ -23,7 +29,16 @@ impl Server {
         Self {
             tile_size: map.tile_width,
             chunks,
+            objects: HashMap::new(),
+            next_object_id: 1,
         }
+    }
+
+    pub fn spawn(&mut self, object: Object) -> u32 {
+        let id = self.next_object_id;
+        self.next_object_id += 1;
+        self.objects.insert(id, object);
+        id
     }
 
     /// Generate update packet into buffer, as if the client moved from last_position to position.
@@ -43,7 +58,7 @@ impl Server {
 
         let center = chunk_coords(position);
 
-        let cdst_range = |c: i32| c - Self::CHUNK_DISTANCE as i32..c + Self::CHUNK_DISTANCE as i32;
+        let cdst_range = |c: i32| c - Self::CHUNK_DISTANCE as i32..=c + Self::CHUNK_DISTANCE as i32;
         for y in cdst_range(center.1) {
             for x in cdst_range(center.0) {
                 if x < 0

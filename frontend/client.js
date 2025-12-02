@@ -41,6 +41,6 @@ const floats = (...numbers) => {
 };
 
 function sendPlayerUpdate() {
-  // socket.send(blob('u', floats(camera.x, camera.y)));
+  socket.send(blob('u', floats(camera.x, camera.y)));
 }
 

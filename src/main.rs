@@ -5,15 +5,18 @@ pub use server::Server;
 
 pub static SERVER: std::sync::RwLock<Option<Server>> = std::sync::RwLock::new(None);
 
-pub fn log_err<T, E: std::fmt::Display>(result: Result<T, E>) -> Option<T> {
-    match result {
-        Ok(value) => Some(value),
-        Err(err) => {
-            log::error!("{}", err);
-            None
+macro_rules! log_err {
+    ($result:expr) => {
+        match $result {
+            Ok(value) => Some(value),
+            Err(err) => {
+                log::error!("{}", err);
+                None
+            }
         }
-    }
+    };
 }
+use log_err;
 
 #[tokio::main]
 async fn main() {
