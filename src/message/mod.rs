@@ -1,7 +1,11 @@
 use crate::Server;
 use axum::extract::ws::*;
 
-pub type Client = futures_util::stream::SplitSink<WebSocket, Message>;
+#[derive(Debug)]
+pub struct Client {
+    tx: futures_util::stream::SplitSink<WebSocket, Message>,
+    textures: std::collections::HashSet<String>,
+}
 
 pub fn texture(texture: &str) -> Message {
     // TODO: caching

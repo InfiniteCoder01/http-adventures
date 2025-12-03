@@ -1,16 +1,27 @@
 class World {
+    chunkSize;
+    tileSize;
+
     /**
      * @typedef {Object} Chunk
      * @property {(number | null)[][]} layers
      */
 
-    chunkSize;
-    tileSize;
-
     /**
      * @type {Object.<number, Object.<number, Chunk>>}
      */
     chunks = {};
+
+    /**
+     * @typedef {Object} GameObject
+     * @property {number} x
+     * @property {number} y
+     */
+
+    /**
+     * @type {Object.<number, GameObject>}
+     */
+    objects = {};
 
     /**
      * @param bytes {DataView}
@@ -40,6 +51,28 @@ class World {
         return index;
     }
 
+    /**
+     * @param bytes {DataView}
+     */
+    parseObject(bytes, index) {
+        const change = String.fromCharCode(bytes.getUint8(index++));
+        const id = bytes.getUint32(index);
+        index += 4;
+        if (change == '-') {
+            delete this.objects[id];
+            return index;
+        }
+
+        const x = bytes.getUint32(index);
+        const y = bytes.getUint32(index + 4);
+        index += 8;
+
+        this.objects[id] = {
+            x, y,
+        };
+        return index;
+    }
+
     get(x, y) {
         const row = this.chunks[y];
         if (!row) return undefined;
@@ -49,41 +82,10 @@ class World {
 
 let world = new World();
 
-/**
- * @typedef {Object} GameObject
- * @property {number} x
- * @property {number} y
- */
 
-/**
- * @type {Object.<number, GameObject>}
- */
-let objects = {};
 
 /**
  * @type {GameObject}
  */
 let player;
 let player_id;
-
-/**
- * @param bytes {DataView}
- */
-function parseObject(bytes, index) {
-    const change = String.fromCharCode(bytes.getUint8(index++));
-    const id = bytes.getUint32(index);
-    index += 4;
-    if (change == '-') {
-        delete objects[id];
-        return index;
-    }
-
-    const x = bytes.getUint32(index);
-    const y = bytes.getUint32(index + 4);
-    index += 8;
-
-    objects[id] = {
-        x, y,
-    };
-    return index;
-}

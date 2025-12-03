@@ -11,7 +11,9 @@ onkeydown = event => {
 }
 
 socket.addEventListener("open", () => setInterval(() => {
-    camera.x += (key('KeyD') - key('KeyA')) * 1;
-    camera.y += (key('KeyS') - key('KeyW')) * 1;
+    if (!player) return;
+    player.x += (key('KeyD') - key('KeyA')) * 1;
+    player.y += (key('KeyS') - key('KeyW')) * 1;
+    [camera.x, camera.y] = [player.x, player.y];
     sendPlayerUpdate();
 }, 1000 / 60));
