@@ -1,21 +1,12 @@
 const url = `${document.location.origin.replace('http', 'ws')}/api`;
 const socket = new WebSocket(url);
 
-function parseString(bytes, index) {
-  let end = index;
-  while (bytes.getUint8(end) != 0) end++;
-  return [new TextDecoder("utf-8").decode(bytes.buffer.slice(index, end)), end + 1];
-}
-
 // On message
 socket.addEventListener("message", async (event) => {
   const bytes = new DataView(await event.data.arrayBuffer());
   const type = String.fromCharCode(bytes.getUint8(0));
 
-  if (type == 't') { // Texture message
-    const [id, index] = parseString(bytes, 1);
-    textures[id] = await createImageBitmap(event.data.slice(index));
-  } else if (type == 'j' || type == 'u') { // Join/update message
+  if (type == 'j' || type == 'u') { // Join/update message
     let index = 1;
 
     if (type == 'j') { // Parse join metadata
@@ -23,6 +14,8 @@ socket.addEventListener("message", async (event) => {
       world.chunkSize = bytes.getUint32(index);
       world.tileSize = bytes.getUint32(index + 4);
       index += 8;
+      [world.tileset, index] = parseString(bytes, index);
+      world.tileset = texture(world.tileset);
     }
 
     while (bytes.getUint8(index) > 0) index = world.parseChunk(bytes, index);

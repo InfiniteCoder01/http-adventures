@@ -28,6 +28,7 @@ async fn main() {
     SERVER.write().unwrap().replace(server);
 
     use axum::routing::*;
+    use tower_http::services::ServeDir;
     let app = axum::Router::new()
         .route(
             "/api",
@@ -35,7 +36,8 @@ async fn main() {
                 ws.on_upgrade(message::handle_socket)
             }),
         )
-        .fallback_service(tower_http::services::ServeDir::new("frontend"));
+        .nest_service("/assets", ServeDir::new("assets"))
+        .fallback_service(ServeDir::new("frontend"));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
     axum::serve(listener, app).await.unwrap();

@@ -5,10 +5,22 @@ const camera = {
 };
 
 const textures = {};
-function drawTile(texture, tile, x, y) {
-    const image = textures[texture];
-    if (!image) return;
-    ctx.drawImage(image, tile[0] * 32, tile[1] * 32, 32, 32, x, y, 32, 32);
+function texture(id) {
+    if (!textures[id]) {
+        textures[id] = new Image();
+        textures[id].src = `${document.location.origin}/assets/${id}`;
+    }
+    return textures[id];
+}
+
+function drawTile(image, tile, tileSize, x, y) {
+    if (typeof tileSize === "number") tileSize = [tileSize, tileSize];
+    if (typeof image === "string") image = texture(image);
+    ctx.drawImage(
+        image,
+        tile[0] * tileSize[0],
+        tile[1] * tileSize[1],
+        ...tileSize, x, y, ...tileSize);
 }
 
 function drawChunk(cx, cy) {
@@ -19,9 +31,11 @@ function drawChunk(cx, cy) {
             for (let ty = 0; ty < world.chunkSize; ty++) {
                 const tile = layer[tx + ty * world.chunkSize];
                 if (tile === null) continue;
+                const row = world.tileset.width / world.tileSize;
                 drawTile(
-                    "spritesheet.png",
-                    [tile % 16, Math.floor(tile / 16)],
+                    world.tileset,
+                    [tile % row, Math.floor(tile / row)],
+                    world.tileSize,
                     (cx * world.chunkSize + tx) * world.tileSize,
                     (cy * world.chunkSize + ty) * world.tileSize,
                 );
@@ -40,6 +54,11 @@ function drawChunk(cx, cy) {
     }
 }
 
+function drawObject(object) {
+    const image = texture(object.texture);
+    ctx.drawImage(image, object.x - image.width / 2, object.y - image.height);
+}
+
 function renderFrame() {
     const minSize = 512;
     const scale = Math.round(Math.min(canvas.width, canvas.height) / minSize);
@@ -56,7 +75,10 @@ function renderFrame() {
             drawChunk(cx, cy);
         }
     }
-    ctx.fillRect(camera.x - 5, camera.y - 5, 10, 10);
+
+    const objects = Object.values(world.objects)
+    objects.sort((a, b) => a.y - b.y);
+    for (const object of objects) drawObject(object);
 
     requestAnimationFrame(renderFrame);
 }

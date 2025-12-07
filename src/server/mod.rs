@@ -7,8 +7,23 @@ pub use chunk::Chunk;
 pub mod object;
 pub use object::Object;
 
+fn image_to_texture(image: &tiled::Image) -> String {
+    let path = image.source.as_path();
+    path.iter()
+        .skip_while(|c| *c != "assets")
+        .skip(1)
+        .collect::<std::path::PathBuf>()
+        .to_string_lossy()
+        .into_owned()
+}
+
+fn tileset(tileset: &tiled::Tileset) -> String {
+    image_to_texture(tileset.image.as_ref().unwrap())
+}
+
 pub struct Server {
     pub tile_size: u32,
+    pub tileset: String,
     pub chunks: BidiVec<Chunk>,
     pub objects: HashMap<u32, Object>,
     pub next_object_id: u32,
@@ -17,7 +32,7 @@ pub struct Server {
 impl Server {
     pub const CHUNK_SIZE: u32 = 16;
     pub const CHUNK_DISTANCE: u32 = 2;
-    pub const OBJECT_DISTANCE: f32 = 64.0;
+    pub const OBJECT_DISTANCE: f32 = 1024.0;
 
     pub fn new(map: &tiled::Map) -> Self {
         let chunks = BidiVec::with_size_func_xy(
@@ -26,11 +41,35 @@ impl Server {
             |x, y| Chunk::new(&map, (x as _, y as _)),
         );
 
+        let mut objects = HashMap::new();
+        let mut next_object_id = 1;
+        for layer in map.layers() {
+            let Some(layer) = layer.as_object_layer() else {
+                continue;
+            };
+
+            for object in layer.objects() {
+                let tile = object.get_tile().unwrap().get_tile().unwrap();
+                let tile = tile.image.as_ref().unwrap();
+                objects.insert(
+                    object.id(),
+                    Object {
+                        x: object.x + tile.width as f32 / 2.0,
+                        y: object.y,
+                        texture: image_to_texture(tile),
+                        client: None,
+                    },
+                );
+                next_object_id = next_object_id.max(object.id() + 1);
+            }
+        }
+
         Self {
             tile_size: map.tile_width,
+            tileset: tileset(&map.tilesets()[0]),
             chunks,
-            objects: HashMap::new(),
-            next_object_id: 1,
+            objects,
+            next_object_id,
         }
     }
 
@@ -112,6 +151,8 @@ impl Server {
             if visible {
                 buffer.extend_from_slice(&object.x.to_be_bytes());
                 buffer.extend_from_slice(&object.y.to_be_bytes());
+                buffer.extend_from_slice(&object.texture.as_bytes());
+                buffer.push(0);
             }
         }
         buffer.push(0)

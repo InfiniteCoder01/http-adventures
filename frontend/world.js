@@ -1,6 +1,13 @@
+function parseString(bytes, index) {
+  let end = index;
+  while (bytes.getUint8(end) != 0) end++;
+  return [new TextDecoder("utf-8").decode(bytes.buffer.slice(index, end)), end + 1];
+}
+
 class World {
     chunkSize;
     tileSize;
+    tileset;
 
     /**
      * @typedef {Object} Chunk
@@ -16,6 +23,7 @@ class World {
      * @typedef {Object} GameObject
      * @property {number} x
      * @property {number} y
+     * @property {string} texture
      */
 
     /**
@@ -63,12 +71,14 @@ class World {
             return index;
         }
 
-        const x = bytes.getUint32(index);
-        const y = bytes.getUint32(index + 4);
+        const x = bytes.getFloat32(index);
+        const y = bytes.getFloat32(index + 4);
         index += 8;
+        let texture;
+        [texture, index] = parseString(bytes, index);
 
         this.objects[id] = {
-            x, y,
+            x, y, texture,
         };
         return index;
     }
@@ -81,8 +91,6 @@ class World {
 }
 
 let world = new World();
-
-
 
 /**
  * @type {GameObject}
