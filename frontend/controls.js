@@ -1,19 +1,27 @@
-const keys = {};
-
-const key = name => keys[name] || false;
-onkeyup = event => keys[event.code] = false;
-onkeydown = event => {
-    keys[event.code] = true;
+window.addEventListener("keydown", event => {
     if (event.code == "F3") {
         drawDebugInfo = !drawDebugInfo;
         event.preventDefault();
     }
-}
+});
+
+canvas.addEventListener("mousedown", event => {
+    const [x, y] = cameraToWorld(event.offsetX, event.offsetY);
+    const objects = Object.values(world.objects)
+    objects.sort((a, b) => b.y - a.y);
+    for (const object of objects) {
+        const [w, h] = object.size();
+        if (x > object.x + 0.5 - w / 2 && x < object.x + 0.5 + w / 2 && y > object.y + 0.5 - h && y < object.y + 0.5) {
+            player.pathfind(object.x, object.y);
+            return;
+        }
+    }
+
+    player.pathfind(Math.floor(x), Math.floor(y));
+});
 
 socket.addEventListener("open", () => setInterval(() => {
     if (!player) return;
-    player.x += (key('KeyD') - key('KeyA')) * 1;
-    player.y += (key('KeyS') - key('KeyW')) * 1;
-    [camera.x, camera.y] = [player.x, player.y];
-    sendPlayerUpdate();
+    world.update();
+    [camera.x, camera.y] = [player.x * world.tileSize, player.y * world.tileSize];
 }, 1000 / 60));

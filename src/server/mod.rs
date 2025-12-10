@@ -22,8 +22,9 @@ fn tileset(tileset: &tiled::Tileset) -> String {
 }
 
 pub struct Server {
-    pub tile_size: u32,
     pub tileset: String,
+    pub tile_size: u32,
+    pub offsets: Vec<u32>,
     pub chunks: BidiVec<Chunk>,
     pub objects: HashMap<u32, Object>,
     pub next_object_id: u32,
@@ -32,7 +33,7 @@ pub struct Server {
 impl Server {
     pub const CHUNK_SIZE: u32 = 16;
     pub const CHUNK_DISTANCE: u32 = 2;
-    pub const OBJECT_DISTANCE: f32 = 1024.0;
+    pub const OBJECT_DISTANCE: u32 = 48;
 
     pub fn new(map: &tiled::Map) -> Self {
         let chunks = BidiVec::with_size_func_xy(
@@ -54,8 +55,8 @@ impl Server {
                 objects.insert(
                     object.id(),
                     Object {
-                        x: object.x + tile.width as f32 / 2.0,
-                        y: object.y,
+                        x: (object.x as i32 + tile.width / 2) as u32 / map.tile_width,
+                        y: object.y as u32 / map.tile_height,
                         texture: image_to_texture(tile),
                         client: None,
                     },
@@ -65,8 +66,13 @@ impl Server {
         }
 
         Self {
-            tile_size: map.tile_width,
             tileset: tileset(&map.tilesets()[0]),
+            tile_size: map.tile_width,
+            offsets: map
+                .layers()
+                .filter(|layer| layer.as_tile_layer().is_some())
+                .map(|layer| layer.offset_x as _)
+                .collect(),
             chunks,
             objects,
             next_object_id,
@@ -86,13 +92,13 @@ impl Server {
 
     /// Generate update packet into buffer, as if the client moved from self_object's position to position.
     /// If self_object is None, it is a join packet
-    pub fn update(&self, buffer: &mut Vec<u8>, position: (f32, f32), self_object: Option<u32>) {
+    pub fn update(&self, buffer: &mut Vec<u8>, position: (u32, u32), self_object: Option<u32>) {
         let self_object = self_object.map(|id| (id, &self.objects[&id]));
 
-        let chunk_coords = |(x, y): (f32, f32)| {
+        let chunk_coords = |(x, y): (u32, u32)| {
             (
-                (x / self.tile_size as f32 / Self::CHUNK_SIZE as f32).floor() as i32,
-                (y / self.tile_size as f32 / Self::CHUNK_SIZE as f32).floor() as i32,
+                (x / self.tile_size / Self::CHUNK_SIZE) as i32,
+                (y / self.tile_size / Self::CHUNK_SIZE) as i32,
             )
         };
 
@@ -134,7 +140,7 @@ impl Server {
             }
 
             // Get visibility status
-            let max_dst = |(x, y): (f32, f32)| (object.x - x).abs().max((object.y - y).abs());
+            let max_dst = |(x, y): (u32, u32)| object.x.abs_diff(x).max(object.y.abs_diff(y));
             let visible = max_dst(position) <= Self::OBJECT_DISTANCE;
             let last_visible = if let Some((_, self_object)) = self_object {
                 max_dst((self_object.x, self_object.y)) <= Self::OBJECT_DISTANCE

@@ -7,10 +7,15 @@ pub fn join(server: &mut Server, player_id: u32) -> Message {
     let mut msg = Vec::new();
     msg.push(b'j');
     msg.extend_from_slice(&Server::CHUNK_SIZE.to_be_bytes());
-    msg.extend_from_slice(&server.tile_size.to_be_bytes());
     msg.extend_from_slice(server.tileset.as_bytes());
     msg.push(0);
-    server.update(&mut msg, (0.0, 0.0), None);
+    msg.extend_from_slice(&server.tile_size.to_be_bytes());
+    msg.extend_from_slice(&(server.offsets.len() as u32).to_be_bytes());
+    for offset in &server.offsets {
+        msg.extend_from_slice(&offset.to_be_bytes());
+    }
+    let player = &server.objects[&player_id];
+    server.update(&mut msg, (player.x, player.y), None);
     msg.extend_from_slice(&player_id.to_be_bytes());
     Message::binary(msg)
 }
@@ -32,8 +37,8 @@ pub async fn handle_socket(socket: WebSocket) {
         let mut server = crate::SERVER.write().unwrap();
         let server = server.as_mut().unwrap();
         let player_id = server.spawn(crate::server::Object {
-            x: 0.0,
-            y: 0.0,
+            x: 16,
+            y: 16,
             texture: "Kaleb.png".to_owned(),
             client: Some(tx.clone()),
         });
@@ -59,8 +64,8 @@ pub async fn handle_socket(socket: WebSocket) {
                     let server = server.as_mut().unwrap();
 
                     let new_pos = (
-                        f32::from_be_bytes(bytes[1..5].try_into().unwrap()),
-                        f32::from_be_bytes(bytes[5..9].try_into().unwrap()),
+                        u32::from_be_bytes(bytes[1..5].try_into().unwrap()),
+                        u32::from_be_bytes(bytes[5..9].try_into().unwrap()),
                     );
 
                     let mut buf = vec![b'u'];

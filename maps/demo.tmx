@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="48" height="20" tilewidth="24" tileheight="24" infinite="0" nextlayerid="5" nextobjectid="38">
- <tileset firstgid="1" name="tileset-town" tilewidth="24" tileheight="24" tilecount="25" columns="5">
+ <tileset firstgid="1" name="tileset-town" tilewidth="24" tileheight="24" tilecount="20" columns="5">
   <image source="../assets/tileset-town.png" width="120" height="96"/>
   <wangsets>
    <wangset name="Snow" type="mixed" tile="7">
@@ -23,7 +23,7 @@
    </wangset>
   </wangsets>
  </tileset>
- <tileset firstgid="26" name="objects" tilewidth="72" tileheight="144" tilecount="2" columns="0">
+ <tileset firstgid="21" name="objects" tilewidth="72" tileheight="144" tilecount="2" columns="0">
   <grid orientation="orthogonal" width="1" height="1"/>
   <tile id="0">
    <image source="../assets/objects/trees.png" width="72" height="144"/>
@@ -56,7 +56,7 @@
 6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6
 </data>
  </layer>
- <layer id="4" name="Snow" width="48" height="20">
+ <layer id="4" name="Snow" width="48" height="20" offsetx="12" offsety="12">
   <data encoding="csv">
 9,9,9,9,9,9,9,9,9,15,3,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,
 9,9,9,9,9,9,9,9,9,15,3,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,
@@ -105,22 +105,22 @@
 </data>
  </layer>
  <objectgroup id="3" name="Objects">
-  <object id="21" gid="26" x="338.667" y="196" width="72" height="144"/>
-  <object id="22" gid="26" x="278" y="277.333" width="72" height="144"/>
-  <object id="23" gid="26" x="436" y="211.333" width="72" height="144"/>
-  <object id="24" gid="26" x="477.333" y="290" width="72" height="144"/>
-  <object id="25" gid="26" x="372.667" y="327.333" width="72" height="144"/>
-  <object id="26" gid="26" x="388" y="144" width="72" height="144"/>
-  <object id="27" gid="26" x="604.667" y="176" width="72" height="144"/>
-  <object id="28" gid="26" x="541.333" y="242.667" width="72" height="144"/>
-  <object id="29" gid="26" x="482.667" y="153.333" width="72" height="144"/>
-  <object id="30" gid="26" x="712.667" y="200" width="72" height="144"/>
-  <object id="31" gid="26" x="610" y="318" width="72" height="144"/>
-  <object id="32" gid="26" x="655.333" y="238.667" width="72" height="144"/>
-  <object id="33" gid="26" x="765.333" y="238" width="72" height="144"/>
-  <object id="34" gid="26" x="812" y="186" width="72" height="144"/>
-  <object id="35" gid="26" x="746" y="327.333" width="72" height="144"/>
-  <object id="36" gid="26" x="896" y="180" width="72" height="144"/>
-  <object id="37" gid="26" x="865.333" y="282.667" width="72" height="144"/>
+  <object id="21" gid="21" x="338.667" y="196" width="72" height="144"/>
+  <object id="22" gid="21" x="278" y="277.333" width="72" height="144"/>
+  <object id="23" gid="21" x="436" y="211.333" width="72" height="144"/>
+  <object id="24" gid="21" x="477.333" y="290" width="72" height="144"/>
+  <object id="25" gid="21" x="372.667" y="327.333" width="72" height="144"/>
+  <object id="26" gid="21" x="388" y="144" width="72" height="144"/>
+  <object id="27" gid="21" x="604.667" y="176" width="72" height="144"/>
+  <object id="28" gid="21" x="541.333" y="242.667" width="72" height="144"/>
+  <object id="29" gid="21" x="482.667" y="153.333" width="72" height="144"/>
+  <object id="30" gid="21" x="712.667" y="200" width="72" height="144"/>
+  <object id="31" gid="21" x="610" y="318" width="72" height="144"/>
+  <object id="32" gid="21" x="655.333" y="238.667" width="72" height="144"/>
+  <object id="33" gid="21" x="765.333" y="238" width="72" height="144"/>
+  <object id="34" gid="21" x="812" y="186" width="72" height="144"/>
+  <object id="35" gid="21" x="746" y="327.333" width="72" height="144"/>
+  <object id="36" gid="21" x="896" y="180" width="72" height="144"/>
+  <object id="37" gid="21" x="865.333" y="282.667" width="72" height="144"/>
  </objectgroup>
 </map>

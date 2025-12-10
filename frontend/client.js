@@ -12,10 +12,15 @@ socket.addEventListener("message", async (event) => {
     if (type == 'j') { // Parse join metadata
       world = new World();
       world.chunkSize = bytes.getUint32(index);
-      world.tileSize = bytes.getUint32(index + 4);
-      index += 8;
-      [world.tileset, index] = parseString(bytes, index);
+      [world.tileset, index] = parseString(bytes, index + 4);
       world.tileset = texture(world.tileset);
+      world.tileSize = bytes.getUint32(index);
+      const nlayers = bytes.getUint32(index + 4);
+      index += 8;
+      for (let i = 0; i < nlayers; i++) {
+        world.offsets.push(bytes.getUint32(index));
+        index += 4;
+      }
     }
 
     while (bytes.getUint8(index) > 0) index = world.parseChunk(bytes, index);
@@ -34,13 +39,13 @@ socket.addEventListener("message", async (event) => {
 
 // Sending data
 const blob = (...parts) => new Blob(parts);
-const floats = (...numbers) => {
+const uints = (...numbers) => {
   const view = new DataView(new ArrayBuffer(numbers.length * 4));
-  for (const i in numbers) view.setFloat32(i * 4, numbers[i]);
+  for (const i in numbers) view.setUint32(i * 4, numbers[i]);
   return view;
 };
 
 function sendPlayerUpdate() {
-  socket.send(blob('u', floats(player.x, player.y)));
+  socket.send(blob('u', uints(player.x, player.y)));
 }
 
