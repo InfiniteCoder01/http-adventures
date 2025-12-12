@@ -4,81 +4,6 @@ function parseString(bytes, index) {
   return [new TextDecoder("utf-8").decode(bytes.buffer.slice(index, end)), end + 1];
 }
 
-class GameObject {
-    x; y;
-    texture;
-    facing = 'south';
-
-    constructor(x, y, texture) {
-        this.x = x, this.y = y;
-        this.texture = texture;
-    }
-
-    path = [];
-    pathfind(x, y) {
-        function* dirs(priority) {
-            const dirs = { 'north': [0, -1], 'east': [1, 0], 'south': [0, 1], 'west': [-1, 0] };
-            if (priority) yield [priority, dirs[priority]];
-            for (const [dir, v] of Object.entries(dirs)) {
-                if (dir == priority) continue;
-                yield [dir, v];
-            }
-        }
-
-        const start = [Math.floor(this.x), Math.floor(this.y)];
-        const queue = [{
-            path: this.path.length > 0 ? [start, this.path[0]] : [start],
-            face: this.facing,
-        }];
-        if (this.path.length > 0) this.path.splice(1);
-
-        const visited = {};
-        for (const v of queue[0].path) visited[v] = true;
-
-        while (queue.length > 0) {
-            const { path, face } = queue.shift();
-
-            for (const [dir, v] of dirs(face)) {
-                const next = [
-                    path[path.length - 1][0] + v[0],
-                    path[path.length - 1][1] + v[1]
-                ];
-
-                if (visited[next]) continue;
-                visited[next] = true;
-                const newPath = [...path, next];
-
-                if (next[0] == x && next[1] == y) {
-                    newPath.shift();
-                    this.path = newPath;
-                    return;
-                } else if (newPath.length > 15) continue;
-
-                queue.push({
-                    path: newPath,
-                    face: dir,
-                });
-            }
-        }
-    }
-
-    update() {
-        if (this.path.length > 0) {
-            const [x, y] = this.path[0];
-            const speed = 1 / 16;
-            if (this.x < x) this.x += speed, this.facing = 'east';
-            else if (this.x > x) this.x -= speed, this.facing = 'west';
-            else if (this.y < y) this.y += speed, this.facing = 'south';
-            else if (this.y > y) this.y -= speed, this.facing = 'north';
-            else this.path.shift();
-        }
-    }
-
-    size() {
-        return [2, 5];
-    }
-}
-
 class World {
     chunkSize;
     tileset;
@@ -150,6 +75,11 @@ class World {
         return index;
     }
 
+    obj(id) {
+        // console.log(id);
+        return this.objects[id];
+    }
+
     get(x, y) {
         const row = this.chunks[y];
         if (!row) return undefined;
@@ -164,9 +94,4 @@ class World {
 }
 
 let world = new World();
-
-/**
- * @type {GameObject}
- */
 let player;
-let player_id;

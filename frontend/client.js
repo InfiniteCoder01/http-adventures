@@ -29,8 +29,7 @@ socket.addEventListener("message", async (event) => {
     index++;
 
     if (type == 'j') {
-      player_id = bytes.getUint32(index)
-      player = world.objects[player_id];
+      player = bytes.getUint32(index).toString();
     }
   } else { // Unknown message
     console.error(`Unknown message type ${type} (${bytes.getUint8(0)})`);
@@ -46,6 +45,7 @@ const uints = (...numbers) => {
 };
 
 function sendPlayerUpdate() {
-  socket.send(blob('u', uints(player.x, player.y)));
+  const plr = world.obj(player);
+  socket.send(blob('u', uints(plr.x, plr.y)));
 }
 
