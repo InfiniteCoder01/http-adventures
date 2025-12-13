@@ -11,7 +11,6 @@ class GameObject {
         this.texture = texture;
     }
 
-
     path = [];
     pathfind(x, y) {
         function* dirs(priority) {
@@ -68,7 +67,7 @@ class GameObject {
         if (this.path.length > 0) {
             if (!this.lastMoving) this.moveCallback(this.path[0]);
             this.lastMoving = true;
-            
+
             const [x, y] = this.path[0];
             const speed = 1 / 16;
             if (this.x < x) this.x += speed, this.facing = 'east';

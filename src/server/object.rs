@@ -7,6 +7,18 @@ pub struct Object {
 }
 
 impl Object {
+    pub fn single_update(
+        op: u8,
+        id: u32,
+        callback: impl FnOnce(&mut Vec<u8>),
+    ) -> axum::extract::ws::Message {
+        let mut msg = vec![b'u', 0, op];
+        msg.extend_from_slice(&id.to_be_bytes());
+        callback(&mut msg);
+        msg.push(0);
+        axum::extract::ws::Message::binary(msg)
+    }
+
     pub fn visible(&self, (x, y): (u32, u32)) -> bool {
         self.x.abs_diff(x).max(self.y.abs_diff(y)) <= super::Server::OBJECT_DISTANCE
     }

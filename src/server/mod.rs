@@ -83,13 +83,7 @@ impl Server {
         let id = self.next_object_id;
         self.next_object_id += 1;
 
-        use axum::extract::ws::Message;
-        let mut msg = vec![b'u', 0, b'+'];
-        msg.extend_from_slice(&id.to_be_bytes());
-        object.send(&mut msg);
-        msg.push(0);
-        let msg = Message::binary(msg);
-
+        let msg = Object::single_update(b'+', id, |buffer| object.send(buffer));
         for receiver in self.objects.values() {
             let Some(client) = &receiver.client else {
                 continue;
@@ -108,12 +102,7 @@ impl Server {
     pub fn despawn(&mut self, id: u32) {
         let object = self.objects.remove(&id).unwrap();
 
-        use axum::extract::ws::Message;
-        let mut msg = vec![b'u', 0, b'-'];
-        msg.extend_from_slice(&id.to_be_bytes());
-        msg.push(0);
-        let msg = Message::binary(msg);
-
+        let msg = Object::single_update(b'-', id, |_| ());
         for receiver in self.objects.values() {
             let Some(client) = &receiver.client else {
                 continue;
@@ -127,30 +116,16 @@ impl Server {
     }
 
     pub fn move_object(&mut self, id: u32, new_pos: (u32, u32)) {
-        use axum::extract::ws::Message;
         let object = self.objects.get_mut(&id).unwrap();
         let old_pos = (object.x, object.y);
         (object.x, object.y) = new_pos;
 
-        let mut msg = vec![b'u', 0, b'u'];
-        msg.extend_from_slice(&id.to_be_bytes());
-        let msg_new = {
-            let mut msg = msg.clone();
-            msg[2] = b'+';
-            object.send(&mut msg);
-            msg.push(0);
-            Message::binary(msg)
-        };
-        let msg_del = {
-            let mut msg = msg.clone();
-            msg[2] = b'-';
-            msg.push(0);
-            Message::binary(msg)
-        };
-        msg.extend_from_slice(&object.x.to_be_bytes());
-        msg.extend_from_slice(&object.y.to_be_bytes());
-        msg.push(0);
-        let msg = Message::binary(msg);
+        let msg_add = Object::single_update(b'+', id, |buffer| object.send(buffer));
+        let msg_del = Object::single_update(b'-', id, |_| ());
+        let msg_upd = Object::single_update(b'u', id, |buffer| {
+            buffer.extend_from_slice(&object.x.to_be_bytes());
+            buffer.extend_from_slice(&object.y.to_be_bytes());
+        });
 
         for (rec_id, receiver) in &self.objects {
             if *rec_id == id {
@@ -163,9 +138,9 @@ impl Server {
             let last_visible = receiver.visible(old_pos);
             let visible = receiver.visible(new_pos);
             match (last_visible, visible) {
-                (false, true) => crate::log_err!(client.send(msg_new.clone())),
+                (false, true) => crate::log_err!(client.send(msg_add.clone())),
                 (true, false) => crate::log_err!(client.send(msg_del.clone())),
-                (true, true) => crate::log_err!(client.send(msg.clone())),
+                (true, true) => crate::log_err!(client.send(msg_upd.clone())),
                 (false, false) => None,
             };
         }
