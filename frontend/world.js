@@ -68,6 +68,12 @@ class World {
         const x = bytes.getUint32(index);
         const y = bytes.getUint32(index + 4);
         index += 8;
+
+        if (change == 'u') {
+            this.objects[id].path.push([x, y]);
+            return index;
+        }
+
         let texture;
         [texture, index] = parseString(bytes, index);
 
@@ -75,11 +81,17 @@ class World {
         return index;
     }
 
+    /**
+     * @returns {GameObject}
+     */
     obj(id) {
         // console.log(id);
         return this.objects[id];
     }
 
+    /**
+     * @returns {Chunk}
+     */
     get(x, y) {
         const row = this.chunks[y];
         if (!row) return undefined;

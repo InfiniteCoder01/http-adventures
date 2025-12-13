@@ -3,6 +3,8 @@ class GameObject {
     texture;
     facing = 'south';
     target = null;
+    moveCallback = _ => undefined;
+    reachCallback = _ => undefined;
 
     constructor(x, y, texture) {
         this.x = x, this.y = y;
@@ -54,27 +56,32 @@ class GameObject {
         }
     }
 
+    lastMoving = false;
     update() {
-        if (typeof this.target === "string") {
+        if (Array.isArray(this.target)) {
+            this.pathfind(...this.target);
+        } else if (this.target) {
             const target = world.obj(this.target);
             if (target) this.pathfind(Math.floor(target.x), Math.floor(target.y));
-        } else if (Array.isArray(this.target)) {
-            this.pathfind(...this.target);
         }
 
         if (this.path.length > 0) {
+            if (!this.lastMoving) this.moveCallback(this.path[0]);
+            this.lastMoving = true;
+            
             const [x, y] = this.path[0];
             const speed = 1 / 16;
             if (this.x < x) this.x += speed, this.facing = 'east';
             else if (this.x > x) this.x -= speed, this.facing = 'west';
             else if (this.y < y) this.y += speed, this.facing = 'south';
             else if (this.y > y) this.y -= speed, this.facing = 'north';
-            else this.path.shift();
-        } else {
-            if (typeof this.target === "string") {
-                const target = world.obj(this.target);
-                console.log(`Reached ${target}`);
+            else {
+                this.path.shift();
+                if (this.path.length > 0) this.moveCallback(this.path[0]);
             }
+        } else if (this.target) {
+            this.lastMoving = false;
+            this.reachCallback(this.target);
             this.target = null;
         }
     }

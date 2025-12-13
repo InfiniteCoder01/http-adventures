@@ -70,9 +70,7 @@ pub async fn handle_socket(socket: WebSocket) {
 
                     let mut buf = vec![b'u'];
                     server.update(&mut buf, new_pos, Some(player_id));
-
-                    let player = server.objects.get_mut(&player_id).unwrap();
-                    (player.x, player.y) = new_pos;
+                    server.move_object(player_id, new_pos);
 
                     // Check against an empty packet size
                     if buf.len() > 3 {

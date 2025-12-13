@@ -30,6 +30,8 @@ socket.addEventListener("message", async (event) => {
 
     if (type == 'j') {
       player = bytes.getUint32(index).toString();
+      const plr = world.obj(player);
+      plr.moveCallback = cell => socket.send(blob('u', uints(...cell)));
     }
   } else { // Unknown message
     console.error(`Unknown message type ${type} (${bytes.getUint8(0)})`);
@@ -43,9 +45,4 @@ const uints = (...numbers) => {
   for (const i in numbers) view.setUint32(i * 4, numbers[i]);
   return view;
 };
-
-function sendPlayerUpdate() {
-  const plr = world.obj(player);
-  socket.send(blob('u', uints(plr.x, plr.y)));
-}
 

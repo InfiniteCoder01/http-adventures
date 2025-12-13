@@ -82,12 +82,93 @@ impl Server {
     pub fn spawn(&mut self, object: Object) -> u32 {
         let id = self.next_object_id;
         self.next_object_id += 1;
+
+        use axum::extract::ws::Message;
+        let mut msg = vec![b'u', 0, b'+'];
+        msg.extend_from_slice(&id.to_be_bytes());
+        object.send(&mut msg);
+        msg.push(0);
+        let msg = Message::binary(msg);
+
+        for receiver in self.objects.values() {
+            let Some(client) = &receiver.client else {
+                continue;
+            };
+
+            let visible = receiver.visible((object.x, object.y));
+            if visible {
+                crate::log_err!(client.send(msg.clone()));
+            }
+        }
+
         self.objects.insert(id, object);
         id
     }
 
     pub fn despawn(&mut self, id: u32) {
-        self.objects.remove(&id);
+        let object = self.objects.remove(&id).unwrap();
+
+        use axum::extract::ws::Message;
+        let mut msg = vec![b'u', 0, b'-'];
+        msg.extend_from_slice(&id.to_be_bytes());
+        msg.push(0);
+        let msg = Message::binary(msg);
+
+        for receiver in self.objects.values() {
+            let Some(client) = &receiver.client else {
+                continue;
+            };
+
+            let visible = receiver.visible((object.x, object.y));
+            if visible {
+                crate::log_err!(client.send(msg.clone()));
+            }
+        }
+    }
+
+    pub fn move_object(&mut self, id: u32, new_pos: (u32, u32)) {
+        use axum::extract::ws::Message;
+        let object = self.objects.get_mut(&id).unwrap();
+        let old_pos = (object.x, object.y);
+        (object.x, object.y) = new_pos;
+
+        let mut msg = vec![b'u', 0, b'u'];
+        msg.extend_from_slice(&id.to_be_bytes());
+        let msg_new = {
+            let mut msg = msg.clone();
+            msg[2] = b'+';
+            object.send(&mut msg);
+            msg.push(0);
+            Message::binary(msg)
+        };
+        let msg_del = {
+            let mut msg = msg.clone();
+            msg[2] = b'-';
+            msg.push(0);
+            Message::binary(msg)
+        };
+        msg.extend_from_slice(&object.x.to_be_bytes());
+        msg.extend_from_slice(&object.y.to_be_bytes());
+        msg.push(0);
+        let msg = Message::binary(msg);
+
+        for (rec_id, receiver) in &self.objects {
+            if *rec_id == id {
+                continue;
+            }
+            let Some(client) = &receiver.client else {
+                continue;
+            };
+
+            let last_visible = receiver.visible(old_pos);
+            let visible = receiver.visible(new_pos);
+            match (last_visible, visible) {
+                (false, true) => crate::log_err!(client.send(msg_new.clone())),
+                (true, false) => crate::log_err!(client.send(msg_del.clone())),
+                (true, true) => crate::log_err!(client.send(msg.clone())),
+                (false, false) => None,
+            };
+        }
     }
 
     /// Generate update packet into buffer, as if the client moved from self_object's position to position.
@@ -95,15 +176,10 @@ impl Server {
     pub fn update(&self, buffer: &mut Vec<u8>, position: (u32, u32), self_object: Option<u32>) {
         let self_object = self_object.map(|id| (id, &self.objects[&id]));
 
-        let chunk_coords = |(x, y): (u32, u32)| {
-            (
-                (x / self.tile_size / Self::CHUNK_SIZE) as i32,
-                (y / self.tile_size / Self::CHUNK_SIZE) as i32,
-            )
-        };
-
+        // **** Chunks
+        let chunk_coords =
+            |(x, y): (u32, u32)| ((x / Self::CHUNK_SIZE) as i32, (y / Self::CHUNK_SIZE) as i32);
         let center = chunk_coords(position);
-
         let cdst_range = |c: i32| c - Self::CHUNK_DISTANCE as i32..=c + Self::CHUNK_DISTANCE as i32;
         for y in cdst_range(center.1) {
             for x in cdst_range(center.0) {
@@ -131,6 +207,7 @@ impl Server {
         }
         buffer.push(0);
 
+        // **** Objects
         for (id, object) in &self.objects {
             // Skip self
             if let Some((self_id, _)) = self_object {
@@ -140,10 +217,9 @@ impl Server {
             }
 
             // Get visibility status
-            let max_dst = |(x, y): (u32, u32)| object.x.abs_diff(x).max(object.y.abs_diff(y));
-            let visible = max_dst(position) <= Self::OBJECT_DISTANCE;
+            let visible = object.visible(position);
             let last_visible = if let Some((_, self_object)) = self_object {
-                max_dst((self_object.x, self_object.y)) <= Self::OBJECT_DISTANCE
+                object.visible((self_object.x, self_object.y))
             } else {
                 false
             };
@@ -155,10 +231,7 @@ impl Server {
             buffer.push(if visible { b'+' } else { b'-' });
             buffer.extend_from_slice(&id.to_be_bytes());
             if visible {
-                buffer.extend_from_slice(&object.x.to_be_bytes());
-                buffer.extend_from_slice(&object.y.to_be_bytes());
-                buffer.extend_from_slice(&object.texture.as_bytes());
-                buffer.push(0);
+                object.send(buffer);
             }
         }
         buffer.push(0)
