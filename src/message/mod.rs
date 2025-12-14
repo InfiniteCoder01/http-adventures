@@ -76,6 +76,12 @@ pub async fn handle_socket(socket: WebSocket) {
                     if buf.len() > 3 {
                         crate::log_err!(tx.send(Message::binary(buf)));
                     }
+                } else if bytes[0] == b'i' {
+                    let mut server = crate::SERVER.write().unwrap();
+                    let server = server.as_mut().unwrap();
+
+                    let id = u32::from_be_bytes(bytes[1..5].try_into().unwrap());
+                    server.interact(id, player_id);
                 }
             }
             Message::Close(_) => {

@@ -29,9 +29,13 @@ socket.addEventListener("message", async (event) => {
     index++;
 
     if (type == 'j') {
-      player = bytes.getUint32(index).toString();
+      player = bytes.getUint32(index);
       const plr = world.obj(player);
       plr.moveCallback = cell => socket.send(blob('u', uints(...cell)));
+      plr.reachCallback = target => {
+        if (Array.isArray(target)) return;
+        socket.send(blob('i', uints(target)))
+      }
     }
   } else { // Unknown message
     console.error(`Unknown message type ${type} (${bytes.getUint8(0)})`);
