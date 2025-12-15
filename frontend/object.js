@@ -6,9 +6,9 @@ class GameObject {
     moveCallback = _ => undefined;
     reachCallback = _ => undefined;
 
-    constructor(x, y, texture) {
+    constructor(x, y, tex) {
         this.x = x, this.y = y;
-        this.texture = texture;
+        this.texture = texture(tex);
     }
 
     path = [];

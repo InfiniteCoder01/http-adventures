@@ -219,7 +219,7 @@ impl Server {
         if plr.x != obj.x || plr.y != obj.y {
             return;
         }
-        if obj.texture == "objects/trees.png" {
+        if obj.texture == "objects/pine.png" {
             self.despawn(id);
         }
     }

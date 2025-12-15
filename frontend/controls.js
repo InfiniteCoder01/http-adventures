@@ -2,10 +2,18 @@ window.addEventListener("keydown", event => {
     if (event.code == "F3") {
         drawDebugInfo = !drawDebugInfo;
         event.preventDefault();
+    } else if (event.code == "KeyE") {
+        if (currentUI) currentUI = null;
+        else currentUI = new InventoryUI();
     }
 });
 
 canvas.addEventListener("mousedown", event => {
+    if (currentUI) {
+        currentUI.click(event);
+        return;
+    }
+
     const plr = world.obj(player);
     if (!plr) return;
 

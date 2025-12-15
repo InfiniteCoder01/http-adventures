@@ -26,7 +26,7 @@
  <tileset firstgid="21" name="objects" tilewidth="72" tileheight="144" tilecount="2" columns="0">
   <grid orientation="orthogonal" width="1" height="1"/>
   <tile id="0">
-   <image source="../assets/objects/trees.png" width="72" height="144"/>
+   <image source="../assets/objects/pine.png" width="72" height="144"/>
   </tile>
   <tile id="1">
    <image source="../assets/Kaleb.png" width="48" height="80"/>

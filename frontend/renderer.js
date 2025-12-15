@@ -5,12 +5,13 @@ const camera = {
 };
 
 function getTransforms() {
-    const minSize = 400;
-    const scale = Math.round(Math.min(canvas.width, canvas.height) / minSize);
+    const minSize = 256;
+    const scale = Math.round(Math.min(canvas.width, canvas.height) / minSize * 4) / 4;
     const width = canvas.width / scale, height = canvas.height / scale;
     return [
         scale,
-        Math.round(-camera.x + width / 2), Math.round(-camera.y + height / 2),
+        Math.round((-camera.x + width / 2) * scale) / scale,
+        Math.round((-camera.y + height / 2) * scale) / scale,
         width, height,
     ];
 }
@@ -32,6 +33,11 @@ function texture(id) {
 function drawTile(image, tile, tileSize, x, y) {
     if (typeof tileSize === "number") tileSize = [tileSize, tileSize];
     if (typeof image === "string") image = texture(image);
+    if (typeof tile === "number") {
+        const row = image.width / tileSize[0];
+        tile = [tile % row, Math.floor(tile / row)];
+    }
+
     ctx.drawImage(
         image,
         tile[0] * tileSize[0],
@@ -47,11 +53,8 @@ function drawChunk(cx, cy, layerIndex) {
         for (let ty = 0; ty < world.chunkSize; ty++) {
             const tile = layer[tx + ty * world.chunkSize];
             if (tile === null) continue;
-            const row = world.tileset.width / world.tileSize;
             drawTile(
-                world.tileset,
-                [tile % row, Math.floor(tile / row)],
-                world.tileSize,
+                world.tileset, tile, world.tileSize,
                 (cx * world.chunkSize + tx) * world.tileSize + world.offsets[layerIndex],
                 (cy * world.chunkSize + ty) * world.tileSize + world.offsets[layerIndex],
             );
@@ -70,7 +73,7 @@ function drawChunk(cx, cy, layerIndex) {
 }
 
 function drawObject(object) {
-    const image = texture(object.texture);
+    const image = object.texture;
     ctx.drawImage(image, (object.x + 0.5) * world.tileSize - image.width / 2, (object.y + 0.5) * world.tileSize - image.height);
     if (drawDebugInfo) {
         ctx.strokeStyle = "red";
@@ -105,7 +108,10 @@ function renderFrame() {
     objects.sort((a, b) => a.y - b.y);
     for (const object of objects) drawObject(object);
 
+    ctx.translate(-dx, -dy);
+    if (currentUI) currentUI.draw(width, height);
+
     requestAnimationFrame(renderFrame);
 }
 
-requestAnimationFrame(renderFrame);
+setTimeout(() => requestAnimationFrame(renderFrame));
