@@ -40,7 +40,29 @@ pub async fn handle_socket(socket: WebSocket) {
         match msg {
             Message::Text(msg) => log::info!("Received message: {}", msg),
             Message::Binary(bytes) => {
+                macro_rules! warn_err {
+                    ($ty:ident, $msg:literal $(, $args:expr)*) => {
+                        log::warn!(
+                            concat!(
+                                "invalid ", stringify!($ty), " message from player #{}: ",
+                                $msg
+                            ),
+                            player_id,
+                            $($args,)*
+                        );
+                        continue;
+                    };
+                }
+
+                if bytes.is_empty() {
+                    warn_err!(binary, "empty message");
+                }
+
                 if bytes[0] == b'u' {
+                    if bytes.len() != 9 {
+                        warn_err!(update, "length {}", bytes.len());
+                    }
+
                     let mut server = crate::SERVER.write().unwrap();
                     let server = server.as_mut().unwrap();
 
@@ -48,6 +70,8 @@ pub async fn handle_socket(socket: WebSocket) {
                         u32::from_be_bytes(bytes[1..5].try_into().unwrap()),
                         u32::from_be_bytes(bytes[5..9].try_into().unwrap()),
                     );
+
+                    // TODO: Validate new_pos
 
                     let mut buf = vec![b'u'];
                     server.update(&mut buf, new_pos, Some(player_id));
@@ -66,7 +90,7 @@ pub async fn handle_socket(socket: WebSocket) {
                 }
             }
             Message::Close(_) => {
-                println!("Closing WebSocket connection.");
+                log::info!("player #{player_id} left");
                 break;
             }
             _ => {}

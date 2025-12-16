@@ -7,6 +7,9 @@ pub use chunk::Chunk;
 pub mod object;
 pub use object::Object;
 
+pub mod player;
+pub use player::PlayerData;
+
 fn image_to_texture(image: &tiled::Image) -> String {
     let path = image.source.as_path();
     path.iter()
@@ -28,6 +31,7 @@ pub struct Server {
     pub chunks: BidiVec<Chunk>,
     pub objects: HashMap<u32, Object>,
     pub next_object_id: u32,
+    pub player_persist: HashMap<u32, PlayerData>,
 }
 
 impl Server {
@@ -76,6 +80,7 @@ impl Server {
             chunks,
             objects,
             next_object_id,
+            player_persist: HashMap::new(),
         }
     }
 
@@ -100,7 +105,10 @@ impl Server {
     }
 
     pub fn despawn(&mut self, id: u32) {
-        let object = self.objects.remove(&id).unwrap();
+        let Some(object) = self.objects.remove(&id) else {
+            log::error!("tried to despawn object #{id}, which doesn't exist");
+            return;
+        };
 
         let msg = Object::single_update(b'-', id, |_| ());
         for receiver in self.objects.values() {
@@ -116,7 +124,10 @@ impl Server {
     }
 
     pub fn move_object(&mut self, id: u32, new_pos: (u32, u32)) {
-        let object = self.objects.get_mut(&id).unwrap();
+        let Some(object) = self.objects.get_mut(&id) else {
+            log::error!("tried to move object #{id}, which doesn't exist");
+            return;
+        };
         let old_pos = (object.x, object.y);
         (object.x, object.y) = new_pos;
 
@@ -210,17 +221,5 @@ impl Server {
             }
         }
         buffer.push(0)
-    }
-
-    pub fn interact(&mut self, id: u32, player_id: u32) {
-        let [Some(obj), Some(plr)] = self.objects.get_disjoint_mut([&id, &player_id]) else {
-            return;
-        };
-        if plr.x != obj.x || plr.y != obj.y {
-            return;
-        }
-        if obj.texture == "objects/pine.png" {
-            self.despawn(id);
-        }
     }
 }

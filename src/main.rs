@@ -3,6 +3,11 @@ pub mod message;
 pub mod server;
 pub use server::Server;
 
+pub mod item;
+pub use item::Item;
+
+pub mod behaviour;
+
 pub static SERVER: std::sync::RwLock<Option<Server>> = std::sync::RwLock::new(None);
 
 macro_rules! log_err {

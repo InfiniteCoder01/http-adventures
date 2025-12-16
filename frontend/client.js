@@ -1,6 +1,15 @@
 const url = `${document.location.origin.replace('http', 'ws')}/api`;
 const socket = new WebSocket(url);
 
+function parseItems(bytes, index) {
+  while (index < bytes.byteLength && bytes.getUint8(index) > 0) {
+    const [item, count] = [bytes.getUint8(index) - 1, bytes.getUint32(index + 1)];
+    player.inventory[item] = count;
+    index += 5;
+  }
+  return index;
+}
+
 function onUpdateMessage(bytes, join) {
     let index = 1;
 
@@ -25,13 +34,15 @@ function onUpdateMessage(bytes, join) {
     index++;
 
     if (join) { // Get the player and setup callbacks
-      player = bytes.getUint32(index);
-      const plr = world.obj(player);
-      plr.moveCallback = cell => socket.send(blob('u', uints(...cell)));
-      plr.reachCallback = target => {
+      player = world.obj(bytes.getUint32(index));
+      player.inventory = {};
+      player.moveCallback = cell => socket.send(blob('u', uints(...cell)));
+      player.reachCallback = target => {
         if (Array.isArray(target)) return;
         socket.send(blob('i', uints(target)))
       }
+
+      index = parseItems(bytes, index + 4);
     }
 }
 
@@ -41,6 +52,7 @@ socket.addEventListener("message", async (event) => {
   const type = String.fromCharCode(bytes.getUint8(0));
 
   if (type == 'j' || type == 'u') onUpdateMessage(bytes, type == 'j');
+  else if (type == 'i') parseItems(bytes, 1);
   else console.error(`Unknown message type ${type} (${bytes.getUint8(0)})`);
 });
 
